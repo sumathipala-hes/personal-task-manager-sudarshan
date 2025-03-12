@@ -1,9 +1,11 @@
+import React from "react";
 
-export default function Home() {
+const Tasks = () => {
   return (
-    <>
-      <h1>Personal task manager</h1>
-      <h2>Sudarshan Sumathihpala</h2>
-    </>
+    <div className="md:pl-64 pt-[72px] md:pt-0">
+      <h1 className="text-2xl font-bold">Tasks</h1>
+    </div>
   );
-}
+};
+
+export default Tasks;
