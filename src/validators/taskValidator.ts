@@ -50,3 +50,5 @@ export const taskFilterSchema = z.object({
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type TaskFilterInput = z.infer<typeof taskFilterSchema>;
+export type priorityEnum = z.infer<typeof priorityEnum>;
+export type statusEnum = z.infer<typeof statusEnum>;
