@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import {TaskFilterInput} from "@/validators/taskValidator";
 import { priorityEnum, statusEnum } from "@/validators/taskValidator";
+import AddTaskDialog from "./AddTaskDialog";
 
 const MockCategories= [{
     id: "work",
@@ -27,6 +28,7 @@ const MockCategories= [{
 }]
 
 const TaskFilter = () => {
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [taskFilterValues, setTaskFilterValues] = useState<TaskFilterInput>({
     userId: "",
     skip: 0,
@@ -75,12 +77,15 @@ const TaskFilter = () => {
             <SelectItem value="COMPLETED">Completed</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={taskFilterValues.categoryId} onValueChange={(value)=>{
+        <Select
+          value={taskFilterValues.categoryId}
+          onValueChange={(value) => {
             setTaskFilterValues({
-                ...taskFilterValues,
-                categoryId: value === "all" ? undefined: value as string
-            })
-        }}>
+              ...taskFilterValues,
+              categoryId: value === "all" ? undefined : (value as string),
+            });
+          }}
+        >
           <SelectTrigger className="bg-white">
             <SelectValue placeholder="Select Category" />
           </SelectTrigger>
@@ -94,12 +99,13 @@ const TaskFilter = () => {
           </SelectContent>
         </Select>
         <Button
-          onClick={() => {}}
+          onClick={() => setIsAddTaskOpen(true)}
           className="bg-[#ADB2D4] hover:bg-[#C7D9DD] text-white w-full h-[40px]"
         >
           Add New Task
         </Button>
       </div>
+      <AddTaskDialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen} />
     </div>
   );
 };

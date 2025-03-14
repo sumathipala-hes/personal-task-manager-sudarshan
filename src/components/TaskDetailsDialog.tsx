@@ -88,6 +88,7 @@ export default function TaskDetailsDialog({
       ...task,
       ...editedTaskAttributes,
     });
+    console.log("Task saved", editedTaskAttributes);
     setEditedTaskAttributes({});
   };
 
