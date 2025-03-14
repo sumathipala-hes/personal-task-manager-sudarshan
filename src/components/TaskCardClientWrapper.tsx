@@ -1,24 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import TaskDetailsDialog from "./TaskDetailsDialog";
-
 interface TaskCardClientWrapperProps {
   children: React.ReactNode;
+  onTaskClick: () => void;
 }
 
 export default function TaskCardClientWrapper({
-  children
+  children,
+  onTaskClick,
 }: TaskCardClientWrapperProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   return (
     <>
-      <div onClick={() => setIsModalOpen(true)}>{children}</div>
-        <TaskDetailsDialog
-          isModalOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
+      <div
+        onClick={() => {
+          onTaskClick();
+        }}
+      >
+        {children}
+      </div>
     </>
   );
 }
