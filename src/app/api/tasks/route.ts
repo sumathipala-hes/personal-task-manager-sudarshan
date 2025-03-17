@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ValidationUtils } from "@/utils/validation-utils";
-import { createTaskSchema, taskFilterSchema } from "@/validators/taskValidator";
+import {
+  createtaskWithUserIdSchema,
+  taskFilterSchema,
+} from "@/validators/taskValidator";
 import TaskService from "@/services/taskService";
 
 // Get tasks with filters
@@ -39,7 +42,10 @@ export async function GET(request: NextRequest) {
 
 // Create a new task with categories and create a task log entry for the creation
 export async function POST(request: NextRequest) {
-  const validation = await ValidationUtils.validateRequest(request, createTaskSchema);
+  const validation = await ValidationUtils.validateRequest(
+    request,
+    createtaskWithUserIdSchema
+  );
 
   if (!validation.success) {
     return validation.error;

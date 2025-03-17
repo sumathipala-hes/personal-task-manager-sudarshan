@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,42 +10,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {TaskFilterInput} from "@/validators/taskValidator";
-import { priorityEnum, statusEnum } from "@/validators/taskValidator";
 import AddTaskDialog from "./AddTaskDialog";
-
-const MockCategories= [{
-    id: "work",
-    name: "Work",
-    },
-    {
-    id: "personal",
-    name: "Personal",
-    },
-    {
-    id: "project",
-    name: "Project",
-}]
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { fetchCategories } from "@/app/actions/categoryActions";
+import { Category } from "@/app/types";
 
 const TaskFilter = () => {
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-  const [taskFilterValues, setTaskFilterValues] = useState<TaskFilterInput>({
-    userId: "",
-    skip: 0,
-    take: 12
-  });
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        const {data, error} = await fetchCategories();
+
+        if (error) {
+          console.error(error);
+        } else {
+          setCategories(data as Category[]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    getCategories();
+  }, []);
+
+  
+
+  const updateQueryParams = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (value === "all") {
+      params.delete(key);
+    } else if (value === "") {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    params.set("skip", "0"); 
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   return (
     <div className="flex flex-col gap-4 mb-6 px-4 md:px-0">
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Input type="date" placeholder="Due Date" className="w-full bg-white" />
+        <Input
+          type="date"
+          placeholder="Due Date"
+          className="w-full bg-white"
+          value={searchParams.get("dueDate") as string}
+          onChange={(e) => {
+            updateQueryParams("dueDate", e.target.value);
+          }}
+        />
         <Select
-          value={taskFilterValues.priority}
+          value={searchParams.get("priority") || "all"}
           onValueChange={(value) => {
-            setTaskFilterValues({
-              ...taskFilterValues,
-              priority: value === "all" ? undefined : (value as priorityEnum),
-            });
+            updateQueryParams("priority", value);
           }}
         >
           <SelectTrigger className="bg-white">
@@ -59,12 +85,9 @@ const TaskFilter = () => {
           </SelectContent>
         </Select>
         <Select
-          value={taskFilterValues.status}
+          value={searchParams.get("status") || "all"}
           onValueChange={(value) => {
-            setTaskFilterValues({
-              ...taskFilterValues,
-              status: value === "all" ? undefined : (value as statusEnum),
-            });
+            updateQueryParams("status", value);
           }}
         >
           <SelectTrigger className="bg-white">
@@ -78,12 +101,9 @@ const TaskFilter = () => {
           </SelectContent>
         </Select>
         <Select
-          value={taskFilterValues.categoryId}
+          value={searchParams.get("categoryId") || "all"}
           onValueChange={(value) => {
-            setTaskFilterValues({
-              ...taskFilterValues,
-              categoryId: value === "all" ? undefined : (value as string),
-            });
+            updateQueryParams("categoryId", value);
           }}
         >
           <SelectTrigger className="bg-white">
@@ -91,7 +111,7 @@ const TaskFilter = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {MockCategories.map((category) => (
+            {categories.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 {category.name}
               </SelectItem>

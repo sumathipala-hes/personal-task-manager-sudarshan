@@ -9,7 +9,6 @@ const statusEnum = z.enum([
 ]);
 
 export const createTaskSchema = z.object({
-  userId: z.string().min(1, "User ID is required"),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   dueDate: z
@@ -18,6 +17,11 @@ export const createTaskSchema = z.object({
     .transform((val) => new Date(val)),
   priority: priorityEnum,
   categoryIds: z.array(z.string()).min(1, "Category is required"),
+  status: statusEnum.optional().default(status.PENDING),
+});
+
+export const createtaskWithUserIdSchema = createTaskSchema.extend({
+  userId: z.string().min(1, "User ID is required")
 });
 
 export const updateTaskSchema = z.object({

@@ -17,22 +17,12 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MultiSelect } from "./MultiSelect";
 import { priorityEnum, statusEnum } from "@/validators/taskValidator";
-
-interface CreateTask {
-  userId?: string;
-  title?: string;
-  description?: string;
-  dueDate?: string;
-  priority?: priorityEnum;
-  status?: statusEnum;
-  categories?: {
-    id: string;
-    name: string;
-  }[];
-}
+import { fetchCategories } from "@/app/actions/categoryActions";
+import { Category, CreateTaskInput } from "@/app/types";
+import { createTask } from "@/app/actions/taskActions";
 
 export default function AddTaskDialog({
   open,
@@ -41,12 +31,58 @@ export default function AddTaskDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [task, setTask] = useState<CreateTask>({});
+  const [task, setTask] = useState<CreateTaskInput>({
+    title: "",
+    description: "",
+    dueDate: "",
+    priority: "LOW",
+    status: "PENDING",
+    categories: [],
+  });
+  const [userCategories, setUserCategories] = useState<Category[]>([]);
 
-  const handleCreateTask = () => {
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        const { data, error } = await fetchCategories();
+
+        if (error) {
+          console.error(error);
+        } else {
+          setUserCategories(data as Category[]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    getCategories();
+  }, []);
+
+
+  const handleCreateTask = async () => {
     console.log(task);
-    onOpenChange(false);
-    setTask({});
+    const { categories,dueDate, ...rest } = task;
+    const categoryIds = categories?.map((category) => category.id) || [];
+    try {
+      const { data, error } = await createTask({ categoryIds,dueDate:new Date(dueDate), ...rest });
+      if (error) {
+        console.error(error);
+      } else {
+        console.log(data);
+        onOpenChange(false);
+        setTask({
+          title: "",
+          description: "",
+          dueDate: "",
+          priority: "LOW",
+          status: "PENDING",
+          categories: [],
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -127,7 +163,7 @@ export default function AddTaskDialog({
             <div className="space-y-2">
               <Label htmlFor="categories">Categories</Label>
               <MultiSelect
-                options={mockCatergories}
+                options={userCategories}
                 placeholder="Select categories"
                 value={task.categories || []}
                 onValueChange={(value) =>
@@ -152,9 +188,3 @@ export default function AddTaskDialog({
     </Dialog>
   );
 }
-
-const mockCatergories = [
-  { id: "1", name: "Work" },
-  { id: "2", name: "Personal" },
-  { id: "3", name: "Project" },
-];
