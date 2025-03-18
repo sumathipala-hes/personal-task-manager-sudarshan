@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import { useState } from "react";
 import TaskDetailsDialog from "./TaskDetailsDialog";
-import TaskCardClientWrapper from "./TaskCardClientWrapper";
 import { TaskData } from "@/app/types";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,14 +23,14 @@ export default function TaskListClientWrapper({
   error,
 }: TaskListClientWrapperProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskData | null>(null);
   const [skip, setSkip] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const handleTaskClick = (taskId: string) => {
-    setSelectedTaskId(taskId);
+  const handleTaskClick = (task: TaskData) => {
+    setSelectedTask(task);
     setIsModalOpen(true);
   };
 
@@ -79,12 +78,12 @@ export default function TaskListClientWrapper({
             {React.Children.map(children, (child, index) => {
               if (index < tasks.length) {
                 return (
-                  <TaskCardClientWrapper
+                  <div
                     key={tasks[index].id}
-                    onTaskClick={() => handleTaskClick(tasks[index].id)}
+                    onClick={() => handleTaskClick(tasks[index])}
                   >
                     {child}
-                  </TaskCardClientWrapper>
+                  </div>
                 );
               }
               return null;
@@ -116,9 +115,9 @@ export default function TaskListClientWrapper({
         </>
       )}
 
-      {isModalOpen && selectedTaskId && (
+      {isModalOpen && selectedTask && (
         <TaskDetailsDialog
-          taskId={selectedTaskId}
+          task={selectedTask}
           open={isModalOpen}
           onOpenChange={() => setIsModalOpen(false)}
         />

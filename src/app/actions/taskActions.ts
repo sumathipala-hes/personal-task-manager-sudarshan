@@ -242,3 +242,27 @@ export async function deleteTask(id: string) {
     return { success: false, error: "Failed to delete task" };
   }
 }
+
+export async function fetchTaskLogs(taskId: string) {
+  try {
+    const taskLogs = await prisma.taskLog.findMany({
+      where: {
+        taskId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return {
+      data: taskLogs,
+      error: null,
+    };
+  } catch (error) {
+    console.error("Error fetching task logs:", error);
+    return {
+      error: "Failed to fetch task logs",
+      data: null,
+    };
+  }
+}

@@ -38,4 +38,11 @@ export interface CreateTaskInput {
   status: statusEnum;
   categories: Category[];
 }
+
+export interface TaskLog{
+  id: string;
+  taskId: string;
+  action: string;
+  createdAt: Date;
+}
     

@@ -39,53 +39,69 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { priorityEnum, statusEnum } from "@/validators/taskValidator";
 import { MultiSelect } from "@/components/MultiSelect";
+import { fetchTaskLogs } from "@/app/actions/taskActions";
+import { TaskData, Category, TaskLog } from "@/app/types";
+import { fetchCategories } from "@/app/actions/categoryActions";
+import { formatDateForInput } from "@/lib/utils";
 
 interface TaskDetailsDialogProps {
-  taskId: string;
+  task: TaskData;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-interface Task {
-  id?: string;
-  userId?: string;
-  title?: string;
-  description?: string;
-  dueDate?: string;
-  priority?: priorityEnum;
-  status?: statusEnum;
-  createdAt?: string;
-  updatedAt?: string;
-  categories?: {
-    id: string;
-    name: string;
-  }[];
-  taskLogs?: {
-    id: string;
-    taskId: string;
-    action: string;
-    createdAt: string;
-  }[];
-}
-
 export default function TaskDetailsDialog({
-  taskId,
+  task,
   open,
   onOpenChange,
 }: TaskDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [originalTask, setOriginalTask] = useState<TaskData>(task);
+  const [editedTaskAttributes, setEditedTaskAttributes] = useState<
+    Partial<TaskData>
+  >({});
+  const [editedCategories, setEditedCategories] = useState<Category[]>([]);
+  const [userCategories, setUserCategories] = useState<Category[]>([]);
+  const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
 
-  const [task, setTask] = useState<Task>(mockTask);
+  // fetch the categories related to the user
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        const { data, error } = await fetchCategories();
 
-  const [editedTaskAttributes, setEditedTaskAttributes] = useState<Task>({});
+        if (error) {
+          console.error(error);
+        } else {
+          setUserCategories(data as Category[]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    getCategories();
+  }, []);
 
-  useEffect(() => {}, [taskId]);
+  useEffect(() => {
+    const getTaskLogs = async () => {
+      try {
+        const { data, error } = await fetchTaskLogs(task.id);
+        if(!error){
+          setTaskLogs(data as TaskLog[]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    getTaskLogs();
+
+  }, [task.id]);
 
   const handleSave = () => {
     setIsEditing(false);
-    setTask({
-      ...task,
+    setOriginalTask({
+      ...originalTask,
       ...editedTaskAttributes,
     });
     console.log("Task saved", editedTaskAttributes);
@@ -94,12 +110,13 @@ export default function TaskDetailsDialog({
 
   const handleCancel = () => {
     setEditedTaskAttributes({});
+    setEditedCategories([]);
     setIsEditing(false);
   };
 
   // Function to get the current value of a field, respecting empty strings
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getCurrentValue = (field: keyof Task, originalValue: any) => {
+  const getCurrentValue = (field: keyof TaskData, originalValue: any) => {
     return field in editedTaskAttributes
       ? editedTaskAttributes[field]
       : originalValue;
@@ -118,7 +135,7 @@ export default function TaskDetailsDialog({
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  value={getCurrentValue("title", task?.title)}
+                  value={getCurrentValue("title", originalTask?.title)}
                   disabled={!isEditing}
                   onChange={(e) =>
                     setEditedTaskAttributes({
@@ -132,7 +149,7 @@ export default function TaskDetailsDialog({
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={getCurrentValue("description", task?.description)}
+                  value={getCurrentValue("description", originalTask?.description)}
                   disabled={!isEditing}
                   onChange={(e) =>
                     setEditedTaskAttributes({
@@ -148,12 +165,14 @@ export default function TaskDetailsDialog({
                   <Input
                     id="dueDate"
                     type="date"
-                    value={getCurrentValue("dueDate", task?.dueDate)}
+                    value={formatDateForInput(
+                      getCurrentValue("dueDate", originalTask.dueDate) as Date
+                    )}
                     disabled={!isEditing}
                     onChange={(e) =>
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
-                        dueDate: e.target.value,
+                        dueDate: e.target.value? new Date(e.target.value): new Date(),
                       })
                     }
                   />
@@ -161,7 +180,7 @@ export default function TaskDetailsDialog({
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
                   <Select
-                    value={getCurrentValue("priority", task?.priority)}
+                    value={getCurrentValue("priority", originalTask?.priority)}
                     onValueChange={(value) => {
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
@@ -185,7 +204,7 @@ export default function TaskDetailsDialog({
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select
-                    value={getCurrentValue("status", task?.status)}
+                    value={getCurrentValue("status", originalTask?.status)}
                     onValueChange={(value) => {
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
@@ -207,15 +226,14 @@ export default function TaskDetailsDialog({
                 <div className="space-y-2">
                   <Label htmlFor="categories">Categories</Label>
                   <MultiSelect
-                    options={mockCatergories}
+                    options={userCategories}
                     placeholder="Select categories"
-                    value={getCurrentValue("categories", task?.categories)}
-                    onValueChange={(value) => {
-                      setEditedTaskAttributes({
-                        ...editedTaskAttributes,
-                        categories: value,
-                      });
-                    }}
+                    value={
+                      editedCategories.length > 0
+                        ? editedCategories
+                        : originalTask.categories.map((c) => c.category)
+                    }
+                    onValueChange={setEditedCategories}
                     dissabled={!isEditing}
                   />
                 </div>
@@ -231,7 +249,7 @@ export default function TaskDetailsDialog({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {task.taskLogs?.map((log) => (
+                    {taskLogs?.map((log) => (
                       <TableRow key={log.id}>
                         <TableCell>
                           {new Date(log.createdAt).toLocaleString()}
@@ -300,39 +318,3 @@ export default function TaskDetailsDialog({
     </>
   );
 }
-
-const mockTask: Task = {
-  id: "1",
-  userId: "user123",
-  title: "Sample Task",
-  description: "This is a sample task description.",
-  dueDate: "2024-04-25",
-  priority: "HIGH",
-  status: "IN_PROGRESS",
-  createdAt: "2024-04-20T10:00:00Z",
-  updatedAt: "2024-04-20T12:00:00Z",
-  categories: [
-    { id: "1", name: "Work" },
-    { id: "2", name: "Personal" },
-  ],
-  taskLogs: [
-    {
-      id: "log1",
-      taskId: "1",
-      action: "Task created",
-      createdAt: "2024-04-20T10:00:00Z",
-    },
-    {
-      id: "log2",
-      taskId: "1",
-      action: "Status updated to In Progress",
-      createdAt: "2024-04-20T12:00:00Z",
-    },
-  ],
-};
-
-const mockCatergories = [
-  { id: "1", name: "Work" },
-  { id: "2", name: "Personal" },
-  { id: "3", name: "Project" },
-];
