@@ -34,7 +34,7 @@ export const updateTaskSchema = z.object({
     .optional(),
   priority: priorityEnum.optional(),
   status: statusEnum.optional(),
-  categoryIds: z.array(z.string()).optional(),
+  categoryIds: z.array(z.string()).min(1, "Required").optional(),
 });
 
 export const taskFilterSchema = z.object({
@@ -56,3 +56,5 @@ export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type TaskFilterInput = z.infer<typeof taskFilterSchema>;
 export type priorityEnum = z.infer<typeof priorityEnum>;
 export type statusEnum = z.infer<typeof statusEnum>;
+
+

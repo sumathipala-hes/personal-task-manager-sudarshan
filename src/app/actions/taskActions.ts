@@ -7,6 +7,8 @@ import {
   taskFilterSchema,
   createtaskWithUserIdSchema,
   CreateTaskInput,
+  updateTaskSchema,
+  UpdateTaskInput,
 } from "@/validators/taskValidator";
 import { auth } from "@clerk/nextjs/server";
 
@@ -262,6 +264,84 @@ export async function fetchTaskLogs(taskId: string) {
     console.error("Error fetching task logs:", error);
     return {
       error: "Failed to fetch task logs",
+      data: null,
+    };
+  }
+}
+
+export async function updateTasK(id: string, updatedTaskData: UpdateTaskInput){
+  try {
+
+    const result = updateTaskSchema.safeParse(updatedTaskData)
+
+    if (!result.success){
+      return {
+        error: "Invalid input data",
+        issues: result.error.issues,
+        data: null,
+      }
+    }
+
+    const task = await prisma.task.findFirst({
+      where: {
+        id,
+      },
+    })
+
+    if (!task){
+      return {
+        error: "Task not found",
+        data: null,
+      }
+    }
+
+    const {categoryIds, ...rest} = result.data
+
+    const updatedTask = await prisma.$transaction(async (tx) => {
+      
+      // update the task
+      const tsk = await tx.task.update({
+        where: {id},
+        data: rest
+      })
+
+      await tx.taskLog.create({
+        data: {
+          taskId: id,
+          action: "UPDATED",
+        },
+      });
+
+      if (categoryIds) {
+        // Delete existing category relationships
+        await tx.taskCategory.deleteMany({
+          where: { taskId: id },
+        });
+
+        // Create new category relationships
+        if (categoryIds.length > 0) {
+          const categoryConnections = categoryIds.map((categoryId: string) => ({
+            taskId: id,
+            categoryId: categoryId,
+          }));
+
+          await tx.taskCategory.createMany({
+            data: categoryConnections,
+          });
+        }
+      }
+      return tsk;
+    });
+    
+    revalidatePath("/tasks");
+    return{
+      data: updatedTask,
+      error: null,
+    }
+  }catch (error){
+    console.error("Error updating task:", error);
+    return {
+      error: "Failed to update task",
       data: null,
     };
   }

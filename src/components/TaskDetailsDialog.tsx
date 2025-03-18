@@ -37,12 +37,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { priorityEnum, statusEnum } from "@/validators/taskValidator";
+import {
+  priorityEnum,
+  statusEnum,
+  UpdateTaskInput,
+  updateTaskSchema,
+} from "@/validators/taskValidator";
 import { MultiSelect } from "@/components/MultiSelect";
 import { fetchTaskLogs } from "@/app/actions/taskActions";
 import { TaskData, Category, TaskLog } from "@/app/types";
 import { fetchCategories } from "@/app/actions/categoryActions";
 import { formatDateForInput } from "@/lib/utils";
+import { updateTasK } from "@/app/actions/taskActions";
+import { toast } from "sonner";
+import { ZodError } from "zod";
 
 interface TaskDetailsDialogProps {
   task: TaskData;
@@ -61,9 +69,16 @@ export default function TaskDetailsDialog({
   const [editedTaskAttributes, setEditedTaskAttributes] = useState<
     Partial<TaskData>
   >({});
-  const [editedCategories, setEditedCategories] = useState<Category[]>([]);
+  const [editedCategories, setEditedCategories] = useState<Category[] | null>(
+    null
+  );
+  const [originalCatergories, setOriginalCategories] = useState<Category[]>(task.categories.map((c) => c.category));
   const [userCategories, setUserCategories] = useState<Category[]>([]);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
+  const [updating, setUpdating] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
 
   // fetch the categories related to the user
   useEffect(() => {
@@ -83,35 +98,81 @@ export default function TaskDetailsDialog({
     getCategories();
   }, []);
 
+  // fetch the task logs related to the task
   useEffect(() => {
     const getTaskLogs = async () => {
       try {
         const { data, error } = await fetchTaskLogs(task.id);
-        if(!error){
+        if (!error) {
           setTaskLogs(data as TaskLog[]);
         }
       } catch (err) {
         console.error(err);
       }
-    }
+    };
     getTaskLogs();
-
   }, [task.id]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setUpdating(true);
+    let editedTask = {};
+
+    if (editedCategories) {
+      editedTask = {
+        ...editedTaskAttributes,
+        categoryIds: editedCategories.map((c) => c.id),
+      };
+    } else {
+      editedTask = editedTaskAttributes;
+    }
+
+    try {
+      updateTaskSchema.parse(editedTask);
+      setValidationErrors({});
+    } catch (error) {
+      if (error instanceof ZodError) {
+        setValidationErrors(
+          error.errors.reduce(
+            (acc, err) => ({
+              ...acc,
+              [err.path[0]]: err.message,
+            }),
+            {}
+          )
+        );
+      }
+      setUpdating(false);
+      return;
+    }
+
+    const { error } = await updateTasK(task.id, editedTask as UpdateTaskInput);
+    if (error) {
+      toast.error(error);
+      console.error(error);
+      setUpdating(false);
+      return;
+    }
+
+    toast.success("Task updated successfully");
+
     setIsEditing(false);
     setOriginalTask({
       ...originalTask,
       ...editedTaskAttributes,
     });
-    console.log("Task saved", editedTaskAttributes);
     setEditedTaskAttributes({});
+    if (editedCategories) {
+      setOriginalCategories(editedCategories);
+    }
+    setEditedCategories(null);
+    setUpdating(false);
   };
 
   const handleCancel = () => {
     setEditedTaskAttributes({});
-    setEditedCategories([]);
+    setEditedCategories(null);
     setIsEditing(false);
+    setValidationErrors({});
   };
 
   // Function to get the current value of a field, respecting empty strings
@@ -144,12 +205,20 @@ export default function TaskDetailsDialog({
                     })
                   }
                 />
+                {validationErrors.title && (
+                  <p className="text-sm text-red-500">
+                    {validationErrors.title}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={getCurrentValue("description", originalTask?.description)}
+                  value={getCurrentValue(
+                    "description",
+                    originalTask?.description
+                  )}
                   disabled={!isEditing}
                   onChange={(e) =>
                     setEditedTaskAttributes({
@@ -172,7 +241,9 @@ export default function TaskDetailsDialog({
                     onChange={(e) =>
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
-                        dueDate: e.target.value? new Date(e.target.value): new Date(),
+                        dueDate: e.target.value
+                          ? new Date(e.target.value)
+                          : new Date(),
                       })
                     }
                   />
@@ -229,13 +300,18 @@ export default function TaskDetailsDialog({
                     options={userCategories}
                     placeholder="Select categories"
                     value={
-                      editedCategories.length > 0
+                      editedCategories
                         ? editedCategories
-                        : originalTask.categories.map((c) => c.category)
+                        : originalCatergories
                     }
                     onValueChange={setEditedCategories}
                     dissabled={!isEditing}
                   />
+                  {validationErrors.categoryIds && (
+                    <p className="text-sm text-red-500">
+                      {validationErrors.categoryIds}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -272,14 +348,19 @@ export default function TaskDetailsDialog({
             <div className="space-x-4">
               {isEditing ? (
                 <>
-                  <Button variant="outline" onClick={handleCancel}>
+                  <Button
+                    variant="outline"
+                    disabled={updating}
+                    onClick={handleCancel}
+                  >
                     Cancel
                   </Button>
                   <Button
                     className="bg-[#ADB2D4] hover:bg-[#C7D9DD]"
                     onClick={handleSave}
+                    disabled={updating}
                   >
-                    Save
+                    {updating ? "Saving..." : "Save"} 
                   </Button>
                 </>
               ) : (
