@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { validateRequest } from "@/lib/validation";
+import { ValidationUtils } from "@/utils/validation-utils";
 import { updateCategorySchema } from "@/validators/categoryValidator";
 
 // Update a category
@@ -27,10 +27,10 @@ export async function PUT(
       }
     }
 
-    const  validation = await validateRequest(request, updateCategorySchema)
+    const validation = await ValidationUtils.validateRequest(request, updateCategorySchema);
 
-    if(!validation.success){
-        return validation.error;
+    if (!validation.success) {
+      return validation.error;
     }
 
     const { name } = validation.data;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { validateRequest } from "@/lib/validation";
+import { ValidationUtils } from "@/utils/validation-utils";
 import { updateTaskSchema } from "@/validators/taskValidator";
 import { z } from "zod";
 
@@ -80,7 +80,7 @@ export async function PATCH(
     }
   }
 
-  const validation = await validateRequest(request, updateTaskSchema);
+  const validation = await ValidationUtils.validateRequest(request, updateTaskSchema);
 
   if (!validation.success) {
     return validation.error;
@@ -91,7 +91,7 @@ export async function PATCH(
 
   try {
     const currentTask = await prisma.task.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!currentTask) {

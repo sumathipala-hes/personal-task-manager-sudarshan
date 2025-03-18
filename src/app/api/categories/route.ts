@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { validateRequest } from "@/lib/validation";
+import { ValidationUtils } from "@/utils/validation-utils";
 import { createCategorySchema } from "@/validators/categoryValidator";
 import { z } from "zod";
 
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
 // Create a new category
 export async function POST(request: NextRequest) {
-  const validation = await validateRequest(request, createCategorySchema);
+  const validation = await ValidationUtils.validateRequest(request, createCategorySchema);
 
   if (!validation.success) {
     return validation.error;

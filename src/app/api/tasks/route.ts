@@ -1,26 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { validateRequest, validateQueryParams } from "@/lib/validation";
-import {
-  createTaskSchema,
-  taskFilterSchema,
-} from "@/validators/taskValidator";
+import { ValidationUtils } from "@/utils/validation-utils";
+import { createTaskSchema, taskFilterSchema } from "@/validators/taskValidator";
 
 // Get tasks with filters
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const validation = await validateQueryParams(
-      searchParams,
-      taskFilterSchema
-    );
+    const validation = await ValidationUtils.validateQueryParams(searchParams, taskFilterSchema);
 
     if (!validation.success) {
       return validation.error;
     }
 
-    const { userId, priority, status, dueDate, categoryId, skip, take } = validation.data;
+    const { userId, priority, status, dueDate, categoryId, skip, take } =
+      validation.data;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
@@ -46,29 +41,29 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    if (categoryId){
-        where.categories = {
-            some: {
-            categoryId: categoryId,
-            },
-        };
+    if (categoryId) {
+      where.categories = {
+        some: {
+          categoryId: categoryId,
+        },
+      };
     }
 
     const tasks = await prisma.task.findMany({
       where,
       include: {
         categories: {
-            include: {
-                category: true,
-            },
-            },
+          include: {
+            category: true,
+          },
         },
-        orderBy: {
-            dueDate: "asc",
-        },
-        skip,
-        take,
-        });
+      },
+      orderBy: {
+        dueDate: "asc",
+      },
+      skip,
+      take,
+    });
 
     return NextResponse.json(tasks);
   } catch (error) {
@@ -82,7 +77,7 @@ export async function GET(request: NextRequest) {
 
 // Create a new task with categories and create a task log entry for the creation
 export async function POST(request: NextRequest) {
-  const validation = await validateRequest(request, createTaskSchema);
+  const validation = await ValidationUtils.validateRequest(request, createTaskSchema);
 
   if (!validation.success) {
     return validation.error;

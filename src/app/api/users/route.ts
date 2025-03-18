@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { validateRequest } from "@/lib/validation";
+import { ValidationUtils } from "@/utils/validation-utils";
 import { createUserSchema } from "@/validators/userValidator";
 
 export async function POST(request: NextRequest) {
-  const validation = await validateRequest(request, createUserSchema);
+  const validation = await ValidationUtils.validateRequest(request, createUserSchema);
 
   if (!validation.success) {
     return validation.error;
