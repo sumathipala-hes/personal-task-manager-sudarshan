@@ -47,7 +47,7 @@ import { MultiSelect } from "@/components/MultiSelect";
 import { fetchTaskLogs } from "@/app/actions/taskActions";
 import { TaskData, Category, TaskLog } from "@/app/types";
 import { fetchCategories } from "@/app/actions/categoryActions";
-import { formatDateForInput } from "@/lib/utils";
+import { formatDateForInput } from "@/utils/common-utils";
 import { updateTasK, deleteTask } from "@/app/actions/taskActions";
 import { toast } from "sonner";
 import { ZodError } from "zod";
