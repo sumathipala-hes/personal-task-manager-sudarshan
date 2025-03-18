@@ -48,7 +48,7 @@ import { fetchTaskLogs } from "@/app/actions/taskActions";
 import { TaskData, Category, TaskLog } from "@/app/types";
 import { fetchCategories } from "@/app/actions/categoryActions";
 import { formatDateForInput } from "@/lib/utils";
-import { updateTasK } from "@/app/actions/taskActions";
+import { updateTasK, deleteTask } from "@/app/actions/taskActions";
 import { toast } from "sonner";
 import { ZodError } from "zod";
 
@@ -72,7 +72,9 @@ export default function TaskDetailsDialog({
   const [editedCategories, setEditedCategories] = useState<Category[] | null>(
     null
   );
-  const [originalCatergories, setOriginalCategories] = useState<Category[]>(task.categories.map((c) => c.category));
+  const [originalCatergories, setOriginalCategories] = useState<Category[]>(
+    task.categories.map((c) => c.category)
+  );
   const [userCategories, setUserCategories] = useState<Category[]>([]);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
   const [updating, setUpdating] = useState(false);
@@ -175,9 +177,28 @@ export default function TaskDetailsDialog({
     setValidationErrors({});
   };
 
-  // Function to get the current value of a field, respecting empty strings
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getCurrentValue = (field: keyof TaskData, originalValue: any) => {
+  const handleDelete = async () => {
+    setIsDeleteDialogOpen(false);
+    try {
+      const { error } = await deleteTask(task.id);
+      if (error) {
+        toast.error(error);
+        console.error(error);
+        return;
+      }
+
+      toast.success("Task deleted successfully");
+      onOpenChange(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete task");
+    }
+  };
+
+  const getCurrentValue = (
+    field: keyof TaskData,
+    originalValue: string | Date | number | priorityEnum | statusEnum
+  ) => {
     return field in editedTaskAttributes
       ? editedTaskAttributes[field]
       : originalValue;
@@ -196,7 +217,9 @@ export default function TaskDetailsDialog({
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  value={getCurrentValue("title", originalTask?.title)}
+                  value={
+                    getCurrentValue("title", originalTask?.title) as string
+                  }
                   disabled={!isEditing}
                   onChange={(e) =>
                     setEditedTaskAttributes({
@@ -215,10 +238,12 @@ export default function TaskDetailsDialog({
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={getCurrentValue(
-                    "description",
-                    originalTask?.description
-                  )}
+                  value={
+                    getCurrentValue(
+                      "description",
+                      originalTask?.description
+                    ) as string
+                  }
                   disabled={!isEditing}
                   onChange={(e) =>
                     setEditedTaskAttributes({
@@ -251,7 +276,7 @@ export default function TaskDetailsDialog({
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
                   <Select
-                    value={getCurrentValue("priority", originalTask?.priority)}
+                    value={getCurrentValue("priority", originalTask?.priority) as priorityEnum}
                     onValueChange={(value) => {
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
@@ -275,7 +300,7 @@ export default function TaskDetailsDialog({
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select
-                    value={getCurrentValue("status", originalTask?.status)}
+                    value={getCurrentValue("status", originalTask?.status) as statusEnum}
                     onValueChange={(value) => {
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
@@ -300,9 +325,7 @@ export default function TaskDetailsDialog({
                     options={userCategories}
                     placeholder="Select categories"
                     value={
-                      editedCategories
-                        ? editedCategories
-                        : originalCatergories
+                      editedCategories ? editedCategories : originalCatergories
                     }
                     onValueChange={setEditedCategories}
                     dissabled={!isEditing}
@@ -360,7 +383,7 @@ export default function TaskDetailsDialog({
                     onClick={handleSave}
                     disabled={updating}
                   >
-                    {updating ? "Saving..." : "Save"} 
+                    {updating ? "Saving..." : "Save"}
                   </Button>
                 </>
               ) : (
@@ -390,7 +413,10 @@ export default function TaskDetailsDialog({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
