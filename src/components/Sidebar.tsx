@@ -13,6 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { UserButton } from "@clerk/nextjs";
 
 const navigation = [
   { name: "Tasks", href: "/", icon: ListTodo },
@@ -80,6 +81,9 @@ export default function Sidebar() {
             <h1 className="text-2xl font-bold text-white">Task Mate</h1>
           </div>
           <NavigationLinks />
+          <div className="m-10 ">
+            <UserButton />
+          </div>
         </div>
       </div>
     </>
