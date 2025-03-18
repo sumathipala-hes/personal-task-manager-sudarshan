@@ -17,7 +17,7 @@ export const createTaskSchema = z.object({
     .or(z.date())
     .transform((val) => new Date(val)),
   priority: priorityEnum,
-  categoryIds: z.array(z.string()).optional().default([]),
+  categoryIds: z.array(z.string()).min(1, "Category is required"),
 });
 
 export const updateTaskSchema = z.object({

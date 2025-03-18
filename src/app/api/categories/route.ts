@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
 import { ValidationUtils } from "@/utils/validation-utils";
 import { createCategorySchema } from "@/validators/categoryValidator";
 import { z } from "zod";
+import CategoryService from "@/services/categoryService";
 
 // Get all categories for a user
 export async function GET(request: NextRequest) {
@@ -25,14 +25,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const categories = await prisma.category.findMany({
-      where: {
-        userId: userId as string,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const categories = await CategoryService.getCategoriesByUserId(userId as string);
 
     return NextResponse.json(categories);
   } catch (error) {
@@ -55,12 +48,7 @@ export async function POST(request: NextRequest) {
   const { userId, name } = validation.data;
 
   try {
-    const category = await prisma.category.create({
-      data: {
-        userId: userId,
-        name,
-      },
-    });
+    const category = await CategoryService.createCategory(userId, name);
 
     return NextResponse.json(category, { status: 201 });
   } catch (error) {

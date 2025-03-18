@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
 import { ValidationUtils } from "@/utils/validation-utils";
 import { updateTaskSchema, UpdateTaskInput } from "@/validators/taskValidator";
 import { z } from "zod";
+import TaskService from "@/services/taskService";
 
 // Get a single task by ID
 export async function GET(
@@ -27,21 +27,7 @@ export async function GET(
       }
     }
 
-    const task = await prisma.task.findUnique({
-      where: { id },
-      include: {
-        categories: {
-          include: {
-            category: true,
-          },
-        },
-        taskLogs: {
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-      },
-    });
+    const task = await TaskService.getTaskById(id);
 
     if (!task) {
       console.error("Task not found");
@@ -90,9 +76,7 @@ export async function PATCH(
     validation.data;
 
   try {
-    const currentTask = await prisma.task.findUnique({
-      where: { id },
-    });
+    const currentTask = await TaskService.getTaskById(id);
 
     if (!currentTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
@@ -105,56 +89,9 @@ export async function PATCH(
     if (priority) updateData.priority = priority;
     if (status) updateData.status = status;
 
-    // Update task with transaction to handle categories
-    await prisma.$transaction(async (tx) => {
-      // Update the task
-      const task = await tx.task.update({
-        where: { id },
-        data: updateData,
-      });
+    await TaskService.updateTask(id, updateData, categoryIds);
 
-      // Create task log entry
-      await tx.taskLog.create({
-        data: {
-          taskId: task.id,
-          action: "UPDATED",
-        },
-      });
-
-      // Update categories if provided
-      if (categoryIds) {
-        // Delete existing category relationships
-        await tx.taskCategory.deleteMany({
-          where: { taskId: id },
-        });
-
-        // Create new category relationships
-        if (categoryIds.length > 0) {
-          const categoryConnections = categoryIds.map((categoryId: string) => ({
-            taskId: id,
-            categoryId: categoryId,
-          }));
-
-          await tx.taskCategory.createMany({
-            data: categoryConnections,
-          });
-        }
-      }
-
-      return task;
-    });
-
-    // Fetch the complete updated task with categories
-    const taskWithCategories = await prisma.task.findUnique({
-      where: { id },
-      include: {
-        categories: {
-          include: {
-            category: true,
-          },
-        },
-      },
-    });
+    const taskWithCategories = await TaskService.getTaskById(id);
 
     return NextResponse.json(taskWithCategories);
   } catch (error) {
@@ -189,23 +126,7 @@ export async function DELETE(
       }
     }
 
-    // Delete with transaction to handle related records
-    await prisma.$transaction(async (tx) => {
-      // Delete taskCategory relationships
-      await tx.taskCategory.deleteMany({
-        where: { taskId: id },
-      });
-
-      // Delete task logs
-      await tx.taskLog.deleteMany({
-        where: { taskId: id },
-      });
-
-      // Delete the task
-      await tx.task.delete({
-        where: { id },
-      });
-    });
+    await TaskService.deleteTask(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

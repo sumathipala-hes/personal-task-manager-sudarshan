@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
 import { ValidationUtils } from "@/utils/validation-utils";
 import { createUserSchema } from "@/validators/userValidator";
+import UserService from "@/services/userService";
 
 export async function POST(request: NextRequest) {
   const validation = await ValidationUtils.validateRequest(request, createUserSchema);
@@ -14,9 +14,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { clerkId: clerkId },
-    });
+    const existingUser = await UserService.getUserByClerkId(clerkId);
 
     if (existingUser) {
       return NextResponse.json(
@@ -25,11 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.create({
-      data: {
-        clerkId: clerkId,
-      },
-    });
+    const user = await UserService.createUser(clerkId);
 
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
