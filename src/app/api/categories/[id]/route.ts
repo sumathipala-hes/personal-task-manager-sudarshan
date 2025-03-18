@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { validateRequest } from "@/lib/validation";
+import { ValidationUtils } from "@/utils/validation-utils";
 import { updateCategorySchema } from "@/validators/categoryValidator";
+import CategoryService from "@/services/categoryService";
 
 // Update a category
 export async function PUT(
@@ -27,24 +27,17 @@ export async function PUT(
       }
     }
 
-    const  validation = await validateRequest(request, updateCategorySchema)
+    const validation = await ValidationUtils.validateRequest(request, updateCategorySchema);
 
-    if(!validation.success){
-        return validation.error;
+    if (!validation.success) {
+      return validation.error;
     }
 
     const { name } = validation.data;
 
-    const updatedCategory = await prisma.category.update({
-      where: {
-        id,
-      },
-      data: {
-        name,
-      },
-    });
+    const updatedCategory = await CategoryService.updateCategory(id, name);
 
-    return NextResponse.json(updatedCategory);
+    return NextResponse.json(updatedCategory); 
   } catch (error) {
     console.error("Error updating category:", error);
     return NextResponse.json(
@@ -77,17 +70,7 @@ export async function DELETE(
       }
     }
 
-    await prisma.taskCategory.deleteMany({
-      where: {
-        categoryId: id,
-      },
-    });
-
-    const category = await prisma.category.delete({
-      where: {
-        id,
-      },
-    });
+    const category = await CategoryService.deleteCategory(id);
 
     return NextResponse.json(category);
   } catch (error) {

@@ -17,7 +17,7 @@ export const createTaskSchema = z.object({
     .or(z.date())
     .transform((val) => new Date(val)),
   priority: priorityEnum,
-  categoryIds: z.array(z.string()).optional().default([]),
+  categoryIds: z.array(z.string()).min(1, "Category is required"),
 });
 
 export const updateTaskSchema = z.object({
@@ -50,3 +50,5 @@ export const taskFilterSchema = z.object({
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type TaskFilterInput = z.infer<typeof taskFilterSchema>;
+export type priorityEnum = z.infer<typeof priorityEnum>;
+export type statusEnum = z.infer<typeof statusEnum>;
