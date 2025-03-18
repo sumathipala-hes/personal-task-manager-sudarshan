@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { ValidationUtils } from "@/utils/validation-utils";
-import { updateTaskSchema } from "@/validators/taskValidator";
+import { updateTaskSchema, UpdateTaskInput } from "@/validators/taskValidator";
 import { z } from "zod";
 
 // Get a single task by ID
@@ -98,11 +98,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateData: any = {};
+    const updateData: Partial<UpdateTaskInput> = {};
     if (title) updateData.title = title;
     if (description) updateData.description = description;
-    if (dueDate) updateData.dueDate = dueDate;
+    if (dueDate) updateData.dueDate = dueDate as Date;
     if (priority) updateData.priority = priority;
     if (status) updateData.status = status;
 
