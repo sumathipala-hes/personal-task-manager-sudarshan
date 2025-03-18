@@ -9,15 +9,15 @@ const statusEnum = z.enum([
 ]);
 
 export const createTaskSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().min(1, "Required"),
   description: z.string().optional(),
   dueDate: z
     .string()
     .or(z.date())
     .transform((val) => new Date(val)),
   priority: priorityEnum,
-  categoryIds: z.array(z.string()).min(1, "Category is required"),
-  status: statusEnum.optional().default(status.PENDING),
+  status: statusEnum,
+  categoryIds: z.array(z.string()).min(1, "Required"),
 });
 
 export const createtaskWithUserIdSchema = createTaskSchema.extend({

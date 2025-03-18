@@ -21,8 +21,13 @@ import { useEffect, useState } from "react";
 import { MultiSelect } from "./MultiSelect";
 import { priorityEnum, statusEnum } from "@/validators/taskValidator";
 import { fetchCategories } from "@/app/actions/categoryActions";
-import { Category, CreateTaskInput } from "@/app/types";
+import { Category } from "@/app/types";
 import { createTask } from "@/app/actions/taskActions";
+import { toast } from "sonner";
+import { createTaskSchema, CreateTaskInput } from "@/validators/taskValidator";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 export default function AddTaskDialog({
   open,
@@ -31,15 +36,22 @@ export default function AddTaskDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [task, setTask] = useState<CreateTaskInput>({
-    title: "",
-    description: "",
-    dueDate: "",
-    priority: "LOW",
-    status: "PENDING",
-    categories: [],
-  });
   const [userCategories, setUserCategories] = useState<Category[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    reset,
+    watch,
+  } = useForm<CreateTaskInput>({
+    resolver: zodResolver(createTaskSchema),
+    defaultValues: {},
+  });
+
+  const formValues = watch();
 
   useEffect(() => {
     const getCategories = async () => {
@@ -59,29 +71,29 @@ export default function AddTaskDialog({
     getCategories();
   }, []);
 
+  useEffect(() => {
+    setValue(
+      "categoryIds",
+      selectedCategories.map((cat) => cat.id)
+    );
+  }, [selectedCategories, setValue]);
 
-  const handleCreateTask = async () => {
-    console.log(task);
-    const { categories,dueDate, ...rest } = task;
-    const categoryIds = categories?.map((category) => category.id) || [];
+  const onSubmit = async (data: z.infer<typeof createTaskSchema>) => {
     try {
-      const { data, error } = await createTask({ categoryIds,dueDate:new Date(dueDate), ...rest });
+      const { error } = await createTask(data);
+
       if (error) {
         console.error(error);
+        toast.error(error);
       } else {
-        console.log(data);
+        toast.success("Task created successfully");
+        reset();
+        setSelectedCategories([]);
         onOpenChange(false);
-        setTask({
-          title: "",
-          description: "",
-          dueDate: "",
-          priority: "LOW",
-          status: "PENDING",
-          categories: [],
-        });
       }
     } catch (err) {
       console.error(err);
+      toast.error("Failed to create task");
     }
   };
 
@@ -91,43 +103,52 @@ export default function AddTaskDialog({
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
-              value={task.title}
-              onChange={(e) => setTask({ ...task, title: e.target.value })}
               id="title"
               placeholder="Enter task title"
+              {...register("title")}
             />
+            {errors.title && (
+              <p className="text-sm text-red-500">{errors.title.message}</p>
+            )}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               placeholder="Enter task description"
-              onChange={(e) =>
-                setTask({ ...task, description: e.target.value })
-              }
-              value={task.description}
+              {...register("description")}
             />
+            {errors.description && (
+              <p className="text-sm text-red-500">
+                {errors.description.message}
+              </p>
+            )}
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dueDate">Due Date</Label>
               <Input
-                value={task.dueDate}
-                onChange={(e) => setTask({ ...task, dueDate: e.target.value })}
                 id="dueDate"
-                type="date"
+                type="Date"
+                onChange={(e) => setValue("dueDate", new Date(e.target.value))}
               />
+              {errors.dueDate && (
+                <p className="text-sm text-red-500">{errors.dueDate.message}</p>
+              )}
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <Select
-                value={task.priority}
+                value={formValues.priority}
                 onValueChange={(value) =>
-                  setTask({ ...task, priority: value as priorityEnum })
+                  setValue("priority", value as priorityEnum)
                 }
               >
                 <SelectTrigger>
@@ -139,15 +160,21 @@ export default function AddTaskDialog({
                   <SelectItem value="HIGH">High</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.priority && (
+                <p className="text-sm text-red-500">
+                  {errors.priority.message}
+                </p>
+              )}
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
-                value={task.status}
+                value={formValues.status}
                 onValueChange={(value) =>
-                  setTask({ ...task, status: value as statusEnum })
+                  setValue("status", value as statusEnum)
                 }
               >
                 <SelectTrigger>
@@ -159,31 +186,40 @@ export default function AddTaskDialog({
                   <SelectItem value="COMPLETED">Completed</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.status && (
+                <p className="text-sm text-red-500">{errors.status.message}</p>
+              )}
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="categories">Categories</Label>
               <MultiSelect
                 options={userCategories}
                 placeholder="Select categories"
-                value={task.categories || []}
-                onValueChange={(value) =>
-                  setTask({ ...task, categories: value })
-                }
+                value={selectedCategories}
+                onValueChange={setSelectedCategories}
               />
+              {errors.categoryIds && (
+                <p className="text-sm text-red-500">
+                  {errors.categoryIds.message}
+                </p>
+              )}
             </div>
           </div>
-        </div>
-        <div className="flex justify-end gap-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            className="bg-[#ADB2D4] hover:bg-[#C7D9DD]"
-            onClick={handleCreateTask}
-          >
-            Create Task
-          </Button>
-        </div>
+
+          <div className="flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-[#ADB2D4] hover:bg-[#C7D9DD]">
+              Create Task
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
