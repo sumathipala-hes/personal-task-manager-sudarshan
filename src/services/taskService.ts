@@ -4,8 +4,9 @@ import {
   statusEnum,
   UpdateTaskInput,
 } from "@/validators/taskValidator";
+import UserService from "./userService";
 
-export default class TaskService {
+export default class TaskService extends UserService {
   public static async getTasksWithFilters(
     userId: string,
     priority?: priorityEnum,
@@ -52,7 +53,7 @@ export default class TaskService {
       };
     }
 
-    return await prisma.task.findMany({
+    const tasks = await prisma.task.findMany({
       where,
       include: {
         categories: {
@@ -67,6 +68,12 @@ export default class TaskService {
       skip,
       take,
     });
+
+    const total = await prisma.task.count({
+      where,
+    });
+
+    return { tasks, total };
   }
 
   public static async getTaskById(id: string) {
@@ -93,6 +100,7 @@ export default class TaskService {
     dueDate: Date | string,
     priority: priorityEnum,
     categoryIds: string[],
+    status: statusEnum,
     description?: string
   ) {
     return prisma.task.create({
@@ -102,6 +110,7 @@ export default class TaskService {
         description,
         dueDate,
         priority,
+        status,
         categories: {
           createMany: {
             data: categoryIds?.map((categoryId: string) => ({
@@ -185,6 +194,25 @@ export default class TaskService {
       await tx.task.delete({
         where: { id },
       });
+    });
+  }
+
+  public static async getTaskCount(userId: string) {
+    return prisma.task.count({
+      where: {
+        userId,
+      },
+    });
+  }
+
+  public static async getTaskLogs(taskId: string) {
+    return prisma.taskLog.findMany({
+      where: {
+        taskId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
   }
 }

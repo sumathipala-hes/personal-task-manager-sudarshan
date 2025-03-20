@@ -10,9 +10,51 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { addCategory } from "@/app/actions/categoryActions";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import {
+  createCategorySchema,
+  CreateCategoryInput,
+} from "@/validators/categoryValidator";
+import { toast } from "sonner";
 
 export default function AddCategoryDialog() {
   const [open, onOpenChange] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: zodResolver(createCategorySchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  const handleCreateCategory = async (data: CreateCategoryInput) => {
+    setCreating(true);
+    const { name } = data;
+    try {
+      const { category_error } = await addCategory(name);
+      if (category_error) {
+        console.error(category_error);
+        toast.error(category_error);
+        setCreating(false);
+        return;
+      }
+      onOpenChange(false);
+      reset();
+      toast.success("Category created successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Error creating category");
+    }
+    setCreating(false);
+  };
 
   return (
     <>
@@ -29,20 +71,39 @@ export default function AddCategoryDialog() {
           <DialogHeader>
             <DialogTitle>Add New Category</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Category Name</Label>
-              <Input id="name" placeholder="Enter category name" />
+          <form onSubmit={handleSubmit(handleCreateCategory)}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Category Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Enter category name"
+                  {...register("name")}
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-500">{errors.name.message}</p>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="flex justify-end gap-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button className="bg-[#ADB2D4] hover:bg-[#C7D9DD]">
-              Create Category
-            </Button>
-          </div>
+            <div className="flex justify-end gap-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  reset();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-[#ADB2D4] hover:bg-[#C7D9DD]"
+                type="submit"
+                disabled={creating}
+              >
+                {creating ? "Creating..." : "Create"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </>

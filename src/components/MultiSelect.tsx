@@ -17,11 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-export type Category = {
-  id: string;
-  name: string;
-};
+import { Category } from "@/app/types";
 
 interface MultiSelectProps {
   options: Category[];

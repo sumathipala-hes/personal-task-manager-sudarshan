@@ -1,23 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
+import { TaskData } from '@/app/types';
 
 interface TaskCardProps {
-  title: string;
-  description: string;
-  priority: string;
-  status: string;
-  dueDate: string;
-  categories: string[];
+  task: TaskData
 }
 
 export default function TaskCard({
-  title,
-  description,
-  priority,
-  status,
-  dueDate,
-  categories
+  task
 }: TaskCardProps) {
 
   const getPriorityColor = (priority: string) => {
@@ -64,29 +55,29 @@ export default function TaskCard({
       >
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
-            <CardTitle className="text-lg">{title}</CardTitle>
-            <Badge variant="outline" className={`${getPriorityColor(priority)} text-white`}>
-              {priority}
+            <CardTitle className="text-lg">{task.title}</CardTitle>
+            <Badge variant="outline" className={`${getPriorityColor(task.priority)} text-white`}>
+              {task.priority}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-            {description}
+            {task.description}
           </p>
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1 text-sm text-gray-500">
               <Calendar className="h-4 w-4" />
-              <span>Due: {formatDateTime(dueDate)}</span>
+              <span>Due: {formatDateTime(task.dueDate.toISOString())}</span>
             </div>
-            <Badge variant="secondary" className={`${getStatusColor(status)} w-fit`}>
-              {status.replace('_', ' ')}
+            <Badge variant="secondary" className={`${getStatusColor(task.status)} w-fit`}>
+              {task.status.replace('_', ' ')}
             </Badge>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            {categories.map((category, index) => (
+            {task.categories.map((category, index) => (
               <Badge key={index} variant="outline" className="bg-[#C7D9DD]">
-                {category}
+                {category.category.name}
               </Badge>
             ))}
           </div>

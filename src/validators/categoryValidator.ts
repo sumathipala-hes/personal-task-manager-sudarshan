@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createCategorySchema = z.object({
-  userId: z.string().min(1, "User ID is required"),
+  userId: z.string().min(1, "User ID is required").optional(),
   name: z.string().min(1, "Category name is required"),
 });
 

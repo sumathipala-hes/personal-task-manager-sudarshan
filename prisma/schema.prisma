@@ -54,6 +54,7 @@ model Category{
   name          String
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  deleted       Boolean     @default(false)
   user          User        @relation(fields: [userId], references: [id])
   tasks         TaskCategory[]
   @@map("category")

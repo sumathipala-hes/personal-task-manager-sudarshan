@@ -37,69 +37,150 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { priorityEnum, statusEnum } from "@/validators/taskValidator";
+import {
+  priorityEnum,
+  statusEnum,
+  UpdateTaskInput,
+  updateTaskSchema,
+} from "@/validators/taskValidator";
 import { MultiSelect } from "@/components/MultiSelect";
+import { fetchTaskLogs } from "@/app/actions/taskActions";
+import { TaskData, Category, TaskLog } from "@/app/types";
+import { formatDateForInput } from "@/utils/common-utils";
+import { updateTasK, deleteTask } from "@/app/actions/taskActions";
+import { toast } from "sonner";
+import { ZodError } from "zod";
 
 interface TaskDetailsDialogProps {
-  taskId: string;
+  task: TaskData;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface Task {
-  id?: string;
-  userId?: string;
-  title?: string;
-  description?: string;
-  dueDate?: string;
-  priority?: priorityEnum;
-  status?: statusEnum;
-  createdAt?: string;
-  updatedAt?: string;
-  categories?: {
-    id: string;
-    name: string;
-  }[];
-  taskLogs?: {
-    id: string;
-    taskId: string;
-    action: string;
-    createdAt: string;
-  }[];
+  userCategories: Category[];
 }
 
 export default function TaskDetailsDialog({
-  taskId,
+  task,
   open,
   onOpenChange,
+  userCategories,
 }: TaskDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [originalTask, setOriginalTask] = useState<TaskData>(task);
+  const [editedTaskAttributes, setEditedTaskAttributes] = useState<
+    Partial<TaskData>
+  >({});
+  const [editedCategories, setEditedCategories] = useState<Category[] | null>(
+    null
+  );
+  const [originalCatergories, setOriginalCategories] = useState<Category[]>(
+    task.categories.map((c) => c.category)
+  );
+  const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
+  const [updating, setUpdating] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
 
-  const [task, setTask] = useState<Task>(mockTask);
+  // fetch the task logs related to the task
+  useEffect(() => {
+    const getTaskLogs = async () => {
+      try {
+        const { data, error } = await fetchTaskLogs(task.id);
+        if (!error) {
+          setTaskLogs(data as TaskLog[]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    getTaskLogs();
+  }, [task.id]);
 
-  const [editedTaskAttributes, setEditedTaskAttributes] = useState<Task>({});
+  const handleSave = async () => {
+    setUpdating(true);
+    let editedTask = {};
 
-  useEffect(() => {}, [taskId]);
+    if (editedCategories) {
+      editedTask = {
+        ...editedTaskAttributes,
+        categoryIds: editedCategories.map((c) => c.id),
+      };
+    } else {
+      editedTask = editedTaskAttributes;
+    }
 
-  const handleSave = () => {
+    try {
+      updateTaskSchema.parse(editedTask);
+      setValidationErrors({});
+    } catch (error) {
+      if (error instanceof ZodError) {
+        setValidationErrors(
+          error.errors.reduce(
+            (acc, err) => ({
+              ...acc,
+              [err.path[0]]: err.message,
+            }),
+            {}
+          )
+        );
+      }
+      setUpdating(false);
+      return;
+    }
+
+    const { error } = await updateTasK(task.id, editedTask as UpdateTaskInput);
+    if (error) {
+      toast.error(error);
+      console.error(error);
+      setUpdating(false);
+      return;
+    }
+
+    toast.success("Task updated successfully");
+
     setIsEditing(false);
-    setTask({
-      ...task,
+    setOriginalTask({
+      ...originalTask,
       ...editedTaskAttributes,
     });
-    console.log("Task saved", editedTaskAttributes);
     setEditedTaskAttributes({});
+    if (editedCategories) {
+      setOriginalCategories(editedCategories);
+    }
+    setEditedCategories(null);
+    setUpdating(false);
   };
 
   const handleCancel = () => {
     setEditedTaskAttributes({});
+    setEditedCategories(null);
     setIsEditing(false);
+    setValidationErrors({});
   };
 
-  // Function to get the current value of a field, respecting empty strings
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getCurrentValue = (field: keyof Task, originalValue: any) => {
+  const handleDelete = async () => {
+    setIsDeleteDialogOpen(false);
+    try {
+      const { error } = await deleteTask(task.id);
+      if (error) {
+        toast.error(error);
+        console.error(error);
+        return;
+      }
+
+      toast.success("Task deleted successfully");
+      onOpenChange(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete task");
+    }
+  };
+
+  const getCurrentValue = (
+    field: keyof TaskData,
+    originalValue: string | Date | number | priorityEnum | statusEnum
+  ) => {
     return field in editedTaskAttributes
       ? editedTaskAttributes[field]
       : originalValue;
@@ -118,7 +199,9 @@ export default function TaskDetailsDialog({
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  value={getCurrentValue("title", task?.title)}
+                  value={
+                    getCurrentValue("title", originalTask?.title) as string
+                  }
                   disabled={!isEditing}
                   onChange={(e) =>
                     setEditedTaskAttributes({
@@ -127,12 +210,22 @@ export default function TaskDetailsDialog({
                     })
                   }
                 />
+                {validationErrors.title && (
+                  <p className="text-sm text-red-500">
+                    {validationErrors.title}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={getCurrentValue("description", task?.description)}
+                  value={
+                    getCurrentValue(
+                      "description",
+                      originalTask?.description
+                    ) as string
+                  }
                   disabled={!isEditing}
                   onChange={(e) =>
                     setEditedTaskAttributes({
@@ -148,12 +241,16 @@ export default function TaskDetailsDialog({
                   <Input
                     id="dueDate"
                     type="date"
-                    value={getCurrentValue("dueDate", task?.dueDate)}
+                    value={formatDateForInput(
+                      getCurrentValue("dueDate", originalTask.dueDate) as Date
+                    )}
                     disabled={!isEditing}
                     onChange={(e) =>
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
-                        dueDate: e.target.value,
+                        dueDate: e.target.value
+                          ? new Date(e.target.value)
+                          : new Date(),
                       })
                     }
                   />
@@ -161,7 +258,7 @@ export default function TaskDetailsDialog({
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
                   <Select
-                    value={getCurrentValue("priority", task?.priority)}
+                    value={getCurrentValue("priority", originalTask?.priority) as priorityEnum}
                     onValueChange={(value) => {
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
@@ -185,7 +282,7 @@ export default function TaskDetailsDialog({
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select
-                    value={getCurrentValue("status", task?.status)}
+                    value={getCurrentValue("status", originalTask?.status) as statusEnum}
                     onValueChange={(value) => {
                       setEditedTaskAttributes({
                         ...editedTaskAttributes,
@@ -207,17 +304,19 @@ export default function TaskDetailsDialog({
                 <div className="space-y-2">
                   <Label htmlFor="categories">Categories</Label>
                   <MultiSelect
-                    options={mockCatergories}
+                    options={userCategories}
                     placeholder="Select categories"
-                    value={getCurrentValue("categories", task?.categories)}
-                    onValueChange={(value) => {
-                      setEditedTaskAttributes({
-                        ...editedTaskAttributes,
-                        categories: value,
-                      });
-                    }}
+                    value={
+                      editedCategories ? editedCategories : originalCatergories
+                    }
+                    onValueChange={setEditedCategories}
                     dissabled={!isEditing}
                   />
+                  {validationErrors.categoryIds && (
+                    <p className="text-sm text-red-500">
+                      {validationErrors.categoryIds}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -231,7 +330,7 @@ export default function TaskDetailsDialog({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {task.taskLogs?.map((log) => (
+                    {taskLogs?.map((log) => (
                       <TableRow key={log.id}>
                         <TableCell>
                           {new Date(log.createdAt).toLocaleString()}
@@ -254,14 +353,19 @@ export default function TaskDetailsDialog({
             <div className="space-x-4">
               {isEditing ? (
                 <>
-                  <Button variant="outline" onClick={handleCancel}>
+                  <Button
+                    variant="outline"
+                    disabled={updating}
+                    onClick={handleCancel}
+                  >
                     Cancel
                   </Button>
                   <Button
                     className="bg-[#ADB2D4] hover:bg-[#C7D9DD]"
                     onClick={handleSave}
+                    disabled={updating}
                   >
-                    Save
+                    {updating ? "Saving..." : "Save"}
                   </Button>
                 </>
               ) : (
@@ -291,7 +395,10 @@ export default function TaskDetailsDialog({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -300,39 +407,3 @@ export default function TaskDetailsDialog({
     </>
   );
 }
-
-const mockTask: Task = {
-  id: "1",
-  userId: "user123",
-  title: "Sample Task",
-  description: "This is a sample task description.",
-  dueDate: "2024-04-25",
-  priority: "HIGH",
-  status: "IN_PROGRESS",
-  createdAt: "2024-04-20T10:00:00Z",
-  updatedAt: "2024-04-20T12:00:00Z",
-  categories: [
-    { id: "1", name: "Work" },
-    { id: "2", name: "Personal" },
-  ],
-  taskLogs: [
-    {
-      id: "log1",
-      taskId: "1",
-      action: "Task created",
-      createdAt: "2024-04-20T10:00:00Z",
-    },
-    {
-      id: "log2",
-      taskId: "1",
-      action: "Status updated to In Progress",
-      createdAt: "2024-04-20T12:00:00Z",
-    },
-  ],
-};
-
-const mockCatergories = [
-  { id: "1", name: "Work" },
-  { id: "2", name: "Personal" },
-  { id: "3", name: "Project" },
-];

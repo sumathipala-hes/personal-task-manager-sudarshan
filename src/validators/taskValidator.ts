@@ -9,15 +9,19 @@ const statusEnum = z.enum([
 ]);
 
 export const createTaskSchema = z.object({
-  userId: z.string().min(1, "User ID is required"),
-  title: z.string().min(1, "Title is required"),
+  title: z.string().min(1, "Required"),
   description: z.string().optional(),
   dueDate: z
     .string()
     .or(z.date())
     .transform((val) => new Date(val)),
   priority: priorityEnum,
-  categoryIds: z.array(z.string()).min(1, "Category is required"),
+  status: statusEnum,
+  categoryIds: z.array(z.string()).min(1, "Required"),
+});
+
+export const createtaskWithUserIdSchema = createTaskSchema.extend({
+  userId: z.string().min(1, "User ID is required")
 });
 
 export const updateTaskSchema = z.object({
@@ -30,7 +34,7 @@ export const updateTaskSchema = z.object({
     .optional(),
   priority: priorityEnum.optional(),
   status: statusEnum.optional(),
-  categoryIds: z.array(z.string()).optional(),
+  categoryIds: z.array(z.string()).min(1, "Required").optional(),
 });
 
 export const taskFilterSchema = z.object({
@@ -52,3 +56,5 @@ export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type TaskFilterInput = z.infer<typeof taskFilterSchema>;
 export type priorityEnum = z.infer<typeof priorityEnum>;
 export type statusEnum = z.infer<typeof statusEnum>;
+
+
