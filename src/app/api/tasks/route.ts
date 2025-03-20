@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     return validation.error;
   }
 
-  const { userId, title, description, dueDate, priority, categoryIds } =
+  const { userId, title, description, dueDate, priority, categoryIds, status } =
     validation.data;
 
   try {
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
       dueDate,
       priority,
       categoryIds,
+      status,
       description,
     )
     
