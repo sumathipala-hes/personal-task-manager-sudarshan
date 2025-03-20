@@ -2,7 +2,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import prisma from "@/lib/prisma";
 import {
   taskFilterSchema,
   createtaskWithUserIdSchema,
@@ -10,7 +9,7 @@ import {
   updateTaskSchema,
   UpdateTaskInput,
 } from "@/validators/taskValidator";
-import { auth } from "@clerk/nextjs/server";
+import TaskService from "@/services/taskService";
 
 export async function fetchTasks(
   formData:
@@ -25,18 +24,7 @@ export async function fetchTasks(
       }
 ) {
   try {
-    // const { userId } = await auth();
-    // if (!userId) {
-    //   throw new Error("User is not signed in");
-    // }
-    // const user = await prisma.user.findUnique({
-    //   where: {
-    //     id: userId,
-    //   },
-    // });
-    // if (!user) {
-    //   throw new Error("User not found");
-    // }
+    const user = await TaskService.getCurrUser();
     const rawData =
       formData instanceof FormData
         ? Object.fromEntries(formData.entries())
@@ -44,7 +32,7 @@ export async function fetchTasks(
 
     const result = taskFilterSchema.safeParse({
       ...rawData,
-      userId: "67d004ad23c24ad5d8359bc9",
+      userId: user.id,
     });
 
     if (!result.success) {
@@ -55,56 +43,17 @@ export async function fetchTasks(
       };
     }
 
-    const { priority, status, dueDate, categoryId, skip, take } = result.data;
+    const { priority, status, dueDate, categoryId, skip, take, userId } = result.data;
 
-    const where: any = { userId: "67d004ad23c24ad5d8359bc9" };
-
-    if (priority) {
-      where.priority = priority;
-    }
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (dueDate) {
-      const startDate = new Date(dueDate);
-      const endDate = new Date(dueDate);
-      endDate.setDate(endDate.getDate() + 1);
-
-      where.dueDate = {
-        gte: startDate,
-        lte: endDate,
-      };
-    }
-
-    if (categoryId) {
-      where.categories = {
-        some: {
-          categoryId: categoryId,
-        },
-      };
-    }
-
-    const tasks = await prisma.task.findMany({
-      where,
-      include: {
-        categories: {
-          include: {
-            category: true,
-          },
-        },
-      },
-      orderBy: {
-        dueDate: "asc",
-      },
-      skip: skip || 0,
-      take: take || 10,
-    });
-
-    const total = await prisma.task.count({
-      where,
-    });
+    const { tasks, total } = await TaskService.getTasksWithFilters(
+      userId,
+      priority,
+      status,
+      dueDate,
+      categoryId,
+      skip,
+      take
+    );
 
     return {
       data: tasks,
@@ -126,18 +75,7 @@ export async function createTask(
     | CreateTaskInput
 ) {
   try {
-    // const { userId } = await auth();
-    // if (!userId) {
-    //   throw new Error("User is not signed in");
-    // }
-    // const user = await prisma.user.findUnique({
-    //   where: {
-    //     id: userId,
-    //   },
-    // });
-    // if (!user) {
-    //   throw new Error("User not found");
-    // }
+    const user = await TaskService.getCurrUser();
 
     const rawData =
       formData instanceof FormData
@@ -154,7 +92,7 @@ export async function createTask(
 
     const result = createtaskWithUserIdSchema.safeParse({
       ...rawData,
-      userId: "67d004ad23c24ad5d8359bc9",
+      userId: user.id,
     });
 
     if (!result.success) {
@@ -175,35 +113,15 @@ export async function createTask(
       status,
     } = result.data;
 
-    const taskWithCategories = await prisma.task.create({
-      data: {
-        userId,
-        title,
-        description,
-        dueDate: new Date(dueDate),
-        priority,
-        status,
-        categories: {
-          createMany: {
-            data: (categoryIds || []).map((categoryId: string) => ({
-              categoryId,
-            })),
-          },
-        },
-        taskLogs: {
-          create: {
-            action: "CREATED",
-          },
-        },
-      },
-      include: {
-        categories: {
-          include: {
-            category: true,
-          },
-        },
-      },
-    });
+    const taskWithCategories = await TaskService.createTask(
+      userId,
+      title,
+      dueDate,
+      priority,
+      categoryIds,
+      status,
+      description,
+    );
 
     revalidatePath("/tasks");
 
@@ -222,20 +140,7 @@ export async function createTask(
 
 export async function deleteTask(id: string) {
   try {
-    // Delete associated records first
-    await prisma.$transaction([
-      prisma.taskCategory.deleteMany({
-        where: { taskId: id },
-      }),
-      prisma.taskLog.deleteMany({
-        where: { taskId: id },
-      }),
-      prisma.task.delete({
-        where: { id },
-      }),
-    ]);
-
-    // Revalidate the tasks page to reflect the deleted data
+    await TaskService.deleteTask(id);
     revalidatePath("/tasks");
 
     return { success: true, error: null };
@@ -247,15 +152,7 @@ export async function deleteTask(id: string) {
 
 export async function fetchTaskLogs(taskId: string) {
   try {
-    const taskLogs = await prisma.taskLog.findMany({
-      where: {
-        taskId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
+    const taskLogs = await TaskService.getTaskLogs(taskId);
     return {
       data: taskLogs,
       error: null,
@@ -282,57 +179,10 @@ export async function updateTasK(id: string, updatedTaskData: UpdateTaskInput){
       }
     }
 
-    const task = await prisma.task.findFirst({
-      where: {
-        id,
-      },
-    })
-
-    if (!task){
-      return {
-        error: "Task not found",
-        data: null,
-      }
-    }
-
     const {categoryIds, ...rest} = result.data
 
-    const updatedTask = await prisma.$transaction(async (tx) => {
-      
-      // update the task
-      const tsk = await tx.task.update({
-        where: {id},
-        data: rest
-      })
-
-      await tx.taskLog.create({
-        data: {
-          taskId: id,
-          action: "UPDATED",
-        },
-      });
-
-      if (categoryIds) {
-        // Delete existing category relationships
-        await tx.taskCategory.deleteMany({
-          where: { taskId: id },
-        });
-
-        // Create new category relationships
-        if (categoryIds.length > 0) {
-          const categoryConnections = categoryIds.map((categoryId: string) => ({
-            taskId: id,
-            categoryId: categoryId,
-          }));
-
-          await tx.taskCategory.createMany({
-            data: categoryConnections,
-          });
-        }
-      }
-      return tsk;
-    });
-    
+    const updatedTask =  await TaskService.updateTask(id, rest, categoryIds);
+  
     revalidatePath("/tasks");
     return{
       data: updatedTask,
