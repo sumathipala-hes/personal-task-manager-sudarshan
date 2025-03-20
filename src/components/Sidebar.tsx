@@ -52,26 +52,45 @@ export default function Sidebar() {
     <>
       {/* Mobile Menu Button and Title */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-20 bg-[#ADB2D4] p-4 flex items-center">
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-[#C7D9DD]"
+        <div className="flex-1 flex items-center">
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-[#C7D9DD]"
+              >
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-64 p-0 bg-[#ADB2D4] flex flex-col justify-between"
             >
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0 bg-[#ADB2D4]">
-            <SheetHeader className="p-4">
-              <SheetTitle className="text-2xl font-bold text-white">
-                Task Mate
-              </SheetTitle>
-            </SheetHeader>
-            <NavigationLinks />
-          </SheetContent>
-        </Sheet>
-        <h1 className="text-xl font-bold text-white ml-4">Task Mate</h1>
+              <div>
+                <SheetHeader className="p-4">
+                  <SheetTitle className="text-2xl font-bold text-white">
+                    Task Mate
+                  </SheetTitle>
+                </SheetHeader>
+                <NavigationLinks />
+              </div>
+              <div className="m-10">
+                <UserButton
+                  appearance={{
+                    elements: {
+                      userButtonAvatarBox: "w-10 h-10",
+                    },
+                  }}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+          <h1 className="text-xl font-bold text-white ml-4">Task Mate</h1>
+        </div>
+        <div className="mr-5">
+          <UserButton />
+        </div>
       </div>
 
       {/* Desktop Sidebar */}
@@ -82,7 +101,13 @@ export default function Sidebar() {
           </div>
           <NavigationLinks />
           <div className="m-10 ">
-            <UserButton />
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: "w-10 h-10",
+                },
+              }}
+            />
           </div>
         </div>
       </div>
