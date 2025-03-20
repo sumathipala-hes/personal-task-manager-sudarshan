@@ -61,3 +61,19 @@ export async function updateCategory(id: string, name: string) {
     };
   }
 }
+
+export async function deleteCategory(id: string) {
+  try {
+    await CategoryService.deleteCategory(id);
+    revalidatePath("/categories");
+    revalidatePath("/");
+    return {
+      category_error: null,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      category_error: "Error deleting category",
+    };
+  }
+}
