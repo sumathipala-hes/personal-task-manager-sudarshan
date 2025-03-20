@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,35 +12,17 @@ import {
 } from "@/components/ui/select";
 import AddTaskDialog from "./AddTaskDialog";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { fetchCategories } from "@/app/actions/categoryActions";
 import { Category } from "@/app/types";
 
-const TaskFilter = () => {
+interface TaskFilterProps {
+  userCategories: Category[];
+}
+
+const TaskFilter = ({ userCategories }: TaskFilterProps) => {
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  useEffect(() => {
-    const getCategories = async () => {
-      try {
-        const {data, error} = await fetchCategories();
-
-        if (error) {
-          console.error(error);
-        } else {
-          setCategories(data as Category[]);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    getCategories();
-  }, []);
-
-  
 
   const updateQueryParams = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -52,7 +34,7 @@ const TaskFilter = () => {
     } else {
       params.set(key, value);
     }
-    params.set("skip", "0"); 
+    params.set("skip", "0");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
@@ -111,7 +93,7 @@ const TaskFilter = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((category) => (
+            {userCategories.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 {category.name}
               </SelectItem>
@@ -125,7 +107,11 @@ const TaskFilter = () => {
           Add New Task
         </Button>
       </div>
-      <AddTaskDialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen} />
+      <AddTaskDialog
+        open={isAddTaskOpen}
+        onOpenChange={setIsAddTaskOpen}
+        userCategories={userCategories}
+      />
     </div>
   );
 };

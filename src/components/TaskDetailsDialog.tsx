@@ -46,7 +46,6 @@ import {
 import { MultiSelect } from "@/components/MultiSelect";
 import { fetchTaskLogs } from "@/app/actions/taskActions";
 import { TaskData, Category, TaskLog } from "@/app/types";
-import { fetchCategories } from "@/app/actions/categoryActions";
 import { formatDateForInput } from "@/utils/common-utils";
 import { updateTasK, deleteTask } from "@/app/actions/taskActions";
 import { toast } from "sonner";
@@ -56,12 +55,14 @@ interface TaskDetailsDialogProps {
   task: TaskData;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  userCategories: Category[];
 }
 
 export default function TaskDetailsDialog({
   task,
   open,
   onOpenChange,
+  userCategories,
 }: TaskDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -75,30 +76,11 @@ export default function TaskDetailsDialog({
   const [originalCatergories, setOriginalCategories] = useState<Category[]>(
     task.categories.map((c) => c.category)
   );
-  const [userCategories, setUserCategories] = useState<Category[]>([]);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
   const [updating, setUpdating] = useState(false);
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
-
-  // fetch the categories related to the user
-  useEffect(() => {
-    const getCategories = async () => {
-      try {
-        const { data, error } = await fetchCategories();
-
-        if (error) {
-          console.error(error);
-        } else {
-          setUserCategories(data as Category[]);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    getCategories();
-  }, []);
 
   // fetch the task logs related to the task
   useEffect(() => {

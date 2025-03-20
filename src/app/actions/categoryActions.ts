@@ -23,14 +23,14 @@ export async function fetchCategories() {
       },
     });
     return {
-      error: null,
-      data: categories,
+      category_error: null,
+      categories: categories,
     };
   } catch (error) {
     console.error(error);
     return {
-      error: "Error fetching categories",
-      data: null,
+      category_error: "Error fetching categories",
+      categories: null,
     };
   }
 }

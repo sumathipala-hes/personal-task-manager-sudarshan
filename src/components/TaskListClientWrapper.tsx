@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useState } from "react";
 import TaskDetailsDialog from "./TaskDetailsDialog";
-import { TaskData } from "@/app/types";
+import { Category, TaskData } from "@/app/types";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -14,6 +14,7 @@ interface TaskListClientWrapperProps {
   tasks: TaskData[];
   total: number;
   error?: string;
+  userCategories: Category[];
 }
 
 export default function TaskListClientWrapper({
@@ -21,6 +22,7 @@ export default function TaskListClientWrapper({
   tasks,
   total,
   error,
+  userCategories,
 }: TaskListClientWrapperProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskData | null>(null);
@@ -120,6 +122,7 @@ export default function TaskListClientWrapper({
           task={selectedTask}
           open={isModalOpen}
           onOpenChange={() => setIsModalOpen(false)}
+          userCategories={userCategories}
         />
       )}
     </>

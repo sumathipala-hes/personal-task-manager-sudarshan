@@ -20,7 +20,6 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { MultiSelect } from "./MultiSelect";
 import { priorityEnum, statusEnum } from "@/validators/taskValidator";
-import { fetchCategories } from "@/app/actions/categoryActions";
 import { Category } from "@/app/types";
 import { createTask } from "@/app/actions/taskActions";
 import { toast } from "sonner";
@@ -32,11 +31,12 @@ import { z } from "zod";
 export default function AddTaskDialog({
   open,
   onOpenChange,
+  userCategories,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  userCategories: Category[];
 }) {
-  const [userCategories, setUserCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
 
   const {
@@ -52,24 +52,6 @@ export default function AddTaskDialog({
   });
 
   const formValues = watch();
-
-  useEffect(() => {
-    const getCategories = async () => {
-      try {
-        const { data, error } = await fetchCategories();
-
-        if (error) {
-          console.error(error);
-        } else {
-          setUserCategories(data as Category[]);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    getCategories();
-  }, []);
 
   useEffect(() => {
     setValue(

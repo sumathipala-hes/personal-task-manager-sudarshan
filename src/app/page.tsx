@@ -2,7 +2,8 @@ import TaskFilter from "@/components/TaskFilter";
 import TaskCard from "@/components/TaskCard";
 import TaskListClientWrapper from "@/components/TaskListClientWrapper";
 import { fetchTasks } from "./actions/taskActions";
-import { TaskData } from "./types";
+import { Category, TaskData } from "./types";
+import { fetchCategories } from "./actions/categoryActions";
 
 const Tasks = async ({
   searchParams,
@@ -30,16 +31,25 @@ const Tasks = async ({
     take: 10,
   });
 
+  const { categories, category_error  } = await fetchCategories();
+  let userCategories = categories;
+  if (category_error) {
+    console.error(category_error);
+    userCategories = [];
+  }
+
+
   return (
     <div className="md:pl-64 pt-[72px] md:pt-0">
       <div className="max-w-7xl mx-auto">
-        <TaskFilter />
+        <TaskFilter userCategories={userCategories as Category[]} />
       </div>
       <div className="bg-white rounded-lg shadow p-6 mx-4 md:mx-0">
         <TaskListClientWrapper
           tasks={data as TaskData[]}
           total={total as number}
           error={error as string}
+          userCategories={userCategories as Category[]}
         >
           {data &&
             (data as TaskData[]).map((task) => (
