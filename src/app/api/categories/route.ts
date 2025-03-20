@@ -48,6 +48,12 @@ export async function POST(request: NextRequest) {
   const { userId, name } = validation.data;
 
   try {
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
     const category = await CategoryService.createCategory(userId, name);
 
     return NextResponse.json(category, { status: 201 });
