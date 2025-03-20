@@ -8,7 +8,7 @@ import { useState } from "react";
 interface TaskCatogoryCardProps {
   id: string;
   name: string;
-  createdAt: string;
+  createdAt: Date;
 }
 const TaskCatogoryCard = (props: TaskCatogoryCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
