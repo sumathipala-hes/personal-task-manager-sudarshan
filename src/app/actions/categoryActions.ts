@@ -46,3 +46,18 @@ export async function addCategory(name: string) {
     };
   }
 }
+
+export async function updateCategory(id: string, name: string) {
+  try {
+    await CategoryService.updateCategory(id, name);
+    revalidatePath("/categories");
+    return {
+      category_error: null,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      category_error: "Error updating category",
+    };
+  }
+}
