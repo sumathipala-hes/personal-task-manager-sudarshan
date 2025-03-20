@@ -5,12 +5,9 @@ import { revalidatePath } from "next/cache";
 
 export async function fetchCategories() {
   try {
-    // const user = await CategoryService.getCurrUser();
+    const user = await CategoryService.getCurrUser();
 
-    const categories = await CategoryService.getCategoriesByUserId(
-      "67d004ad23c24ad5d8359bc9"
-      // user.id
-    );
+    const categories = await CategoryService.getCategoriesByUserId(user.id);
     return {
       category_error: null,
       categories: categories,
@@ -26,16 +23,12 @@ export async function fetchCategories() {
 
 export async function addCategory(name: string) {
   try {
-    // const user = await CategoryService.getCurrUser();
+    const user = await CategoryService.getCurrUser();
 
-    await CategoryService.createCategory(
-      "67d004ad23c24ad5d8359bc9",
-      // user.id,
-      name
-    );
+    await CategoryService.createCategory(user.id, name);
 
     revalidatePath("/categories");
-    
+
     return {
       category_error: null,
     };

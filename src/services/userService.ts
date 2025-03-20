@@ -23,7 +23,7 @@ export default class UserService {
     }
     const user = await prisma.user.findUnique({
       where: {
-        id: userId,
+        clerkId: userId,
       },
     });
     if (!user) {

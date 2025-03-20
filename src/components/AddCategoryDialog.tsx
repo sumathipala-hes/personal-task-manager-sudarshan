@@ -43,6 +43,7 @@ export default function AddCategoryDialog() {
       if (category_error) {
         console.error(category_error);
         toast.error(category_error);
+        setCreating(false);
         return;
       }
       onOpenChange(false);
