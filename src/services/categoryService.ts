@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
+import UserService from "./userService";
 
-export default class CategoryService {
+export default class CategoryService extends UserService {
   public static async getCategoriesByUserId(userId: string) {
     return await prisma.category.findMany({
       where: {

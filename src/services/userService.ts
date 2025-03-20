@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 
 export default class UserService {
   public static async getUserByClerkId(clerkId: string) {
@@ -13,5 +14,21 @@ export default class UserService {
         clerkId: clerkId,
       },
     });
+  }
+
+  public static async getCurrUser() {
+    const { userId } = await auth();
+    if (!userId) {
+      throw new Error("User is not signed in");
+    }
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return user;
   }
 }
